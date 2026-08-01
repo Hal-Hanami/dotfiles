@@ -1,0 +1,30 @@
+# A backstop, not the control. No key material is kept here in any form, encrypted or
+# otherwise (DESIGN.md §5) — these patterns exist to catch a file that lands in the
+# source directory by accident, and a repository whose safety rests on a pattern list
+# is one filename away from a leak.
+
+# keys and certificates
+*.key
+*.pem
+*.gpg
+*.p12
+*.pfx
+id_ed25519*
+id_rsa*
+
+# age private keys
+*age*key*
+key.txt
+
+# environment and credentials
+.env
+.env.*
+*.env
+.netrc
+.npmrc
+.pgpass
+
+# chezmoi's own state and local configuration: outside the source directory by
+# design, listed in case a stray copy appears inside it
+*.boltdb
+chezmoi.toml

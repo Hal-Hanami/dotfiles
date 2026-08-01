@@ -1,0 +1,9 @@
+# Created by newuser for 5.9
+eval "$(starship init zsh)"
+export PATH="$HOME/bin:$PATH"
+
+# ssh-agent (keychain)
+eval "$(keychain --eval --quiet id_ed25519)"
+
+# mise
+eval "$(~/.local/bin/mise activate zsh)"
