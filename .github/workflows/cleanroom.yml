@@ -1,0 +1,46 @@
+name: cleanroom
+
+# Run the command the README gives a reader, against a machine that has never been
+# provisioned, and check that its claims hold.
+#
+# This is the measurement the README used to assert from a log pasted by hand. The
+# schedule matters as much as the trigger: this bootstrap installs from upstream
+# installers that resolve `latest` and `lts` at run time (DESIGN.md §8), so what
+# breaks it is a change nobody here made. A check that fires only on commits would
+# report on a repository nobody touched and miss the day the reproduction stopped
+# working.
+#
+# It points at the published repository rather than the checkout, because that is what
+# the documented command actually clones.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: provision a bare container from the one-liner
+        run: |
+          set -o pipefail
+          docker run --rm -v "$PWD:/src:ro" ubuntu:26.04 \
+            bash /src/tests/cleanroom.sh "${GITHUB_REPOSITORY}" 2>&1 | tee /tmp/cleanroom.log
+
+      - name: record what this run observed
+        if: always()
+        run: |
+          {
+            echo "## clean-room bootstrap"
+            echo
+            echo "source: \`${GITHUB_REPOSITORY}\` · image: \`ubuntu:26.04\` · $(date -u +%Y-%m-%d)"
+            echo
+            echo '```'
+            cat /tmp/cleanroom.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
