@@ -1,0 +1,15 @@
+# Files that belong to the repository, not to the home directory it describes.
+#
+# chezmoi treats this source directory as a picture of $HOME, so anything not listed
+# here becomes a target. Names beginning with a dot are chezmoi's own and are never
+# applied, which covers .github but nothing else — without these entries an apply
+# creates ~/LICENSE, ~/docs/ and ~/tests/. See docs/DESIGN.md §7.
+#
+# The markdown glob is deliberately broader than today's filenames: a document added
+# later is then excluded by default rather than by remembering to come back here.
+*.md
+LICENSE
+docs
+docs/**
+tests
+tests/**
