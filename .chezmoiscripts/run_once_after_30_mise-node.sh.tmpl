@@ -1,0 +1,24 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+# Core layer, 3 of 4: the runtime manager, and the runtime it installs.
+# This is the script that forces the phase split (DESIGN.md §3). It installs Node by
+# reading ~/.config/mise/config.toml — a file apply has just written. Move it to the
+# before phase and it reads a file that does not exist and installs nothing, without
+# reporting an error.
+set -euo pipefail
+
+# The installer places it in ~/.local/bin, which is not yet on PATH in this context,
+# so presence is checked at that path as well as through PATH.
+if ! command -v mise >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/mise" ]; then
+  curl -fsSL https://mise.run | sh
+fi
+
+if command -v mise >/dev/null 2>&1; then
+  MISE="$(command -v mise)"
+else
+  MISE="$HOME/.local/bin/mise"
+fi
+
+# Installs what the applied config asks for. Already-present runtimes are skipped (§4).
+"$MISE" install
+{{ end -}}

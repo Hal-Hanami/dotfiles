@@ -1,0 +1,28 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+# Core layer, 4 of 4: the CLI, installed globally through the Node the previous script
+# provisioned. After phase, and dependent on it (DESIGN.md §3). No sudo: the upstream
+# installation guidance rules it out, and the runtime manager's prefix does not need it.
+# Authentication is out of scope — the first run is interactive (§1).
+set -euo pipefail
+
+if command -v mise >/dev/null 2>&1; then
+  MISE="$(command -v mise)"
+else
+  MISE="$HOME/.local/bin/mise"
+fi
+
+# A global npm install triggers the runtime manager's reshim hook, which re-invokes
+# that manager by bare name. The non-interactive PATH scripts run under does not
+# include ~/.local/bin, so the hook fails with command-not-found and npm exits 127 —
+# the CLI is on disk and the script reports failure anyway. Found by running the
+# bootstrap on a clean machine; removing this line reintroduces it.
+MISE_DIR="$(dirname "$MISE")"
+export PATH="$MISE_DIR:$PATH"
+
+if "$MISE" exec -- sh -c 'command -v claude' >/dev/null 2>&1; then
+  exit 0
+fi
+
+"$MISE" exec -- npm install -g @anthropic-ai/claude-code
+{{ end -}}

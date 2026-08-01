@@ -1,0 +1,19 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+# Core layer, 2 of 4: the prompt. Before phase, system level (DESIGN.md §3).
+# No prompt configuration is shipped. The default is what this environment actually
+# runs, and committing a config file that does not exist on the machine being
+# described would make the repository claim something untrue.
+set -euo pipefail
+
+SUDO=""
+if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
+
+if ! command -v starship >/dev/null 2>&1; then
+  # --yes because nothing in provisioning may prompt; --bin-dir because the
+  # installer's default target varies with how it is invoked, and the shell
+  # configuration expects one path.
+  curl -fsSL https://starship.rs/install.sh \
+    | $SUDO sh -s -- --yes --bin-dir /usr/local/bin
+fi
+{{ end -}}

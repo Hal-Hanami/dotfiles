@@ -1,0 +1,49 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+# Core layer, 1 of 4: system packages, the GitHub CLI, and the login shell.
+# Runs before apply: this is the system-level provisioning, and the only phase that
+# uses sudo (DESIGN.md §3). Each step asks the system whether its work is already
+# done, so a re-run against a provisioned machine changes nothing (§4).
+set -euo pipefail
+
+SUDO=""
+if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
+export DEBIAN_FRONTEND=noninteractive
+
+# curl and ca-certificates are prerequisites for the later scripts, which fetch their
+# installers over https. git ships with Ubuntu; listing it is insurance.
+pkgs="curl ca-certificates git zsh age keychain"
+missing=""
+for p in $pkgs; do
+  dpkg -s "$p" >/dev/null 2>&1 || missing="$missing $p"
+done
+if [ -n "$missing" ]; then
+  $SUDO apt-get update
+  # $missing is a space-separated package list and must word-split; quoting it would
+  # hand apt one argument containing every name. $SUDO is empty when already root.
+  # shellcheck disable=SC2086
+  $SUDO apt-get install -y $missing
+fi
+
+# From GitHub's own apt repository rather than Ubuntu's, which lags far enough behind
+# that subcommands the upstream documentation describes are missing.
+if ! command -v gh >/dev/null 2>&1; then
+  $SUDO install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    | $SUDO tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null
+  $SUDO chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    | $SUDO tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+  $SUDO apt-get update
+  $SUDO apt-get install -y gh
+fi
+
+# The one failure this bootstrap tolerates (§4): changing the login shell depends on
+# PAM configuration a non-interactive context may refuse, and zsh is installed and
+# usable either way. Aborting provisioning over it would be the worse outcome.
+zsh_path="$(command -v zsh || true)"
+me="$(id -un)"
+if [ -n "$zsh_path" ] && ! getent passwd "$me" | grep -q ":${zsh_path}$"; then
+  $SUDO chsh -s "$zsh_path" "$me" || true
+fi
+{{ end -}}
