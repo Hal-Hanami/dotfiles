@@ -32,21 +32,34 @@ There are two modes, and which one produced a result matters:
 
 ## Results
 
-### Bootstrap, 2026-08-01, working-tree mode
+### Bootstrap, 2026-08-01, published mode
 
-`ubuntu:26.04`, image digest as pulled on that date. **exit 0, 72 seconds.**
+The documented command, against this repository, in CI. `ubuntu:26.04`.
+**exit 0, 17 seconds.**
 
 | Claim | Result |
 |---|---|
 | Bootstrap succeeds from a bare machine | exit 0 |
 | Every tool in the manifest resolves | 10 of 10 |
-| Runtime resolves in the configured shell | `mise`, `node`, `claude` all resolve under zsh with the shipped configuration |
 | Login shell changed | yes, to zsh |
 | Second apply is a no-op | yes, empty diff |
+| Prerequisites are sufficient | yes — git was absent at the start and the clone still succeeded |
 
-Versions observed on that run. These are observations, not guarantees — the installers
-resolve `latest` and `lts` when they run (DESIGN.md §8), so a later run will differ and
-that is the intended behaviour:
+This is the run that covers claim 4. Every later push to `main` and every weekly run
+repeats it, so the current state is visible in the workflow's history rather than here.
+
+### Bootstrap, 2026-08-01, working-tree mode
+
+The same harness against a local checkout, on a developer machine.
+**exit 0, 73 seconds.** Same outcome on every claim except prerequisites, which this
+mode cannot test, plus one the published run does not check: `mise`, `node`, and
+`claude` all resolve under zsh with the shipped configuration, not merely under bash.
+
+The elapsed times differ by network, not by behaviour. Neither is a benchmark.
+
+Versions observed on the working-tree run. These are observations, not guarantees — the
+installers resolve `latest` and `lts` when they run (DESIGN.md §8), so a later run will
+differ and that is the intended behaviour:
 
 | Tool | Version |
 |---|---|
@@ -108,5 +121,5 @@ by design.
   logins are out of scope and no measurement touches them.
 - **Idempotency is checked one step deep.** A second apply produces an empty diff. This
   does not prove that a machine which has drifted in some other way converges.
-- **The 72 seconds is one sample** on one machine with one network. It is recorded to
-  give a sense of scale, not as a benchmark.
+- **Each elapsed time is one sample** on one machine with one network. They are recorded
+  to give a sense of scale, not as benchmarks.
