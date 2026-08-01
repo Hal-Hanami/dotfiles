@@ -1,0 +1,48 @@
+name: checks
+
+# Offline gates: no network beyond installing the tools, no container, seconds to run.
+#
+# They exist because the defects this repository has actually shipped were not broken
+# shell. They were a rule nobody checked — a personal address sat in commit metadata
+# for the entire time the repository was public, and the reproduction claim in the
+# README was a log pasted by hand that no machine ever re-ran. So the build fails when
+# a design section is cited by no test, when a reference points outside the repository,
+# when the documentation and the manifest disagree about what is installed, or when a
+# tracked file reads as the author's notes rather than as the system.
+#
+# The real bootstrap is not here: it needs a throwaway machine and the network, and a
+# transient upstream failure should not redden a pull request. It runs in cleanroom.yml.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the identity gate reads the whole history
+
+      - name: install chezmoi and bats
+        run: |
+          sh -c "$(curl -fsLS https://get.chezmoi.io)" -- -b /usr/local/bin
+          git clone --depth 1 --branch v1.11.0 \
+            https://github.com/bats-core/bats-core /tmp/bats-core
+
+      - name: the shell in this repository must be valid shell
+        run: |
+          # Rendered, not raw: what reaches a machine is the rendered form, and the
+          # template markers are not shell.
+          for f in .chezmoiscripts/*.sh.tmpl; do
+            chezmoi execute-template --source . < "$f" > "/tmp/$(basename "${f%.tmpl}")"
+          done
+          cp tests/cleanroom.sh /tmp/
+          shellcheck /tmp/*.sh
+
+      - name: suite
+        run: /tmp/bats-core/bin/bats tests/
+
+      - name: whole-repository gates
+        run: python3 tests/gates.py
