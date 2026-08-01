@@ -1,0 +1,26 @@
+# The core layer (DESIGN.md §1), as data rather than prose.
+#
+# The README table, the design's scope section, and the clean-room run all read this
+# file, so a tool cannot be claimed in one place and unverified in another. It also
+# stands in for a coverage metric: every provisioning script appears in column 2, so a
+# clean-room run that resolves every tool below has demonstrably executed all of them.
+# CI fails if a script installs nothing listed here.
+#
+# column 3 is how the tool is resolved after provisioning. They differ because these
+# tools are not installed by the same mechanism, and a check that assumed one PATH
+# would report absent for a tool that is present and working:
+#   path      - a system package, on PATH for any shell
+#   home-bin  - installed under ~/.local/bin, which only the configured shell adds
+#   mise      - a runtime managed by the version manager, reached through it
+#
+# tool      installed-by                       resolver
+git         run_once_before_10_apt-packages    path
+zsh         run_once_before_10_apt-packages    path
+age         run_once_before_10_apt-packages    path
+keychain    run_once_before_10_apt-packages    path
+gh          run_once_before_10_apt-packages    path
+starship    run_once_before_20_starship        path
+mise        run_once_after_30_mise-node        home-bin
+node        run_once_after_30_mise-node        mise
+npm         run_once_after_30_mise-node        mise
+claude      run_once_after_40_claude-code      mise
